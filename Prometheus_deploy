@@ -1,0 +1,61 @@
+services:
+    prometheus:
+        image: prom/prometheus:latest
+        container_name: AE_test_prom
+        command: --web.enable-lifecycle --config.file=/etc/prometheus/config.yml
+        ports:
+            - 9090:9090
+        volumes:
+            - ./prometheus:/etc/prometheus
+            - prometheus-data:/prometheus
+        networks:
+            - test-monitoring
+        restart: always
+
+    node-exporter:
+        image: quay.io/prometheus/node-exporter:latest
+        container_name: node-exporter
+        pid: host
+        ports:
+            - 9100:9100
+        restart: unless-stopped
+
+    pushgateway:
+        image: prom/pushgateway:v1.11.3
+        container_name: pushgateway
+        ports:
+            - 9091:9091
+ 
+        networks:
+            - test-monitoring
+        depends_on:
+            - prometheus
+        restart: unless-stopped
+
+    grafana:
+        image: grafana/grafana
+        container_name: grafana
+        environment:
+            GF_PATH_CONF: /etc/grafana/custom.ini
+        ports:
+            - 80:3000
+        volumes:
+            - ./grafana:/etc/grafana
+            - grafana-data:/var/lib/grafana
+        networks:
+            - test-monitoring
+        depends_on:
+            - prometheus
+        restart: unless-stopped
+
+networks:
+    test-monitoring:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 10.5.0.0/16
+                  gateway: 10.5.0.1
+#volumes:
+volumes:
+    prometheus-data:
+    grafana-data:
